@@ -147,3 +147,25 @@ def update_partial_restaurant(
       A updated record of restaurant in db.
     """
     return update_record_restaurant(restaurant_id, restaurant, db)
+
+
+@app.delete("/api/restaurants/{restaurant_id}", status_code=204)
+def delete_a_restaurant(
+        restaurant_id: int,
+        db: Session = Depends(get_db)):
+    """Deleted one specific record of restaurant, filtered by id .
+
+    Args:
+      restaurant_id: id from restaurant
+
+    Returns:
+       msg: saying that record was deleted sucessfully.
+    """
+    restaurant_record = db.query(Restaurant).filter_by(
+        id=restaurant_id
+    )
+    if restaurant_record.first():
+        restaurant_record.delete()
+        db.commit()
+        return {"detail": "Resource has been deleted sucessfully"}
+    raise HTTPException(status_code=404, detail="Restaurant not found")
