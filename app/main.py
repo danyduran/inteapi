@@ -8,6 +8,7 @@ from database import make_migrations, get_db
 from dummy_data import load_dummy_data
 
 from models import Restaurant
+from schemas import Restaurant as RestaurantSchema
 
 
 make_migrations()
@@ -22,6 +23,13 @@ def index():
 
 @app.get("/api/restaurants", status_code=200)
 def get_all_resturants(db: Session = Depends(get_db)):
+    """Get all records of restaurant in db.
+
+    Args:
+
+    Returns:
+      All saved records of restaurant in db.
+    """
     records = db.query(Restaurant).all()
     return records
 
@@ -30,9 +38,54 @@ def get_all_resturants(db: Session = Depends(get_db)):
 def get_restaurant_by_id(
         restaurant_id: int,
         db: Session = Depends(get_db)):
+    """Get one record of restaurant in db, getting by id.
 
+    Args:
+      restaurant_id: specific id of restaurant record.
+
+    Returns:
+      One specific saved record of restaurant in db, filtered by id.
+    """
     restaurant = db.query(Restaurant).filter_by(id=restaurant_id).first()
     if restaurant:
         return restaurant
 
     raise HTTPException(status_code=404, detail="Restaurant not found")
+
+
+@app.post("/api/restaurants", status_code=201)
+def create_new_restaurant(
+        restaurant: RestaurantSchema,
+        db: Session = Depends(get_db)):
+    """Create one record of restaurant.
+
+    Args:
+      restaurant: json that contains the next params(name,
+        rating, site, email, phone, state, city, lat, lng).
+
+    Returns:
+      A new saved record of restaurant in db.
+    """
+    new_restaurant = Restaurant(
+        rating=restaurant.rating,
+        name=restaurant.name,
+        email=restaurant.email,
+        site=restaurant.site,
+        phone=restaurant.phone,
+        street=restaurant.street,
+        city=restaurant.city,
+        state=restaurant.street,
+        lat=restaurant.lat,
+        lng=restaurant.lng
+    )
+    try:
+        db.add(new_restaurant)
+        db.commit()
+        db.refresh(new_restaurant)
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Have had an error"
+        )
+    return new_restaurant
