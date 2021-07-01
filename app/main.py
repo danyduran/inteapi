@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from starlette.responses import RedirectResponse
 
 from sqlalchemy.orm import Session
@@ -34,7 +34,7 @@ def get_all_resturants(db: Session = Depends(get_db)):
     return records
 
 
-@app.get("/api/restaurants/{restaurant_id}", status_code=200)
+@app.get("/api/restaurants/{restaurant_id}", status_code=status.HTTP_200_OK)
 def get_restaurant_by_id(
         restaurant_id: int,
         db: Session = Depends(get_db)):
@@ -53,7 +53,7 @@ def get_restaurant_by_id(
     raise HTTPException(status_code=404, detail="Restaurant not found")
 
 
-@app.post("/api/restaurants", status_code=201)
+@app.post("/api/restaurants", status_code=status.HTTP_201_CREATED)
 def create_new_restaurant(
         restaurant: RestaurantSchema,
         db: Session = Depends(get_db)):
@@ -89,3 +89,61 @@ def create_new_restaurant(
             detail="Have had an error"
         )
     return new_restaurant
+
+
+def update_record_restaurant(restaurant_id, restaurant, db):
+    restaurant_record = db.query(Restaurant).filter_by(
+        id=restaurant_id
+    ).first()
+    if restaurant_record:
+        try:
+            new_values = restaurant.dict()
+            del new_values["id"]
+            for key, value in new_values.items():
+                setattr(restaurant_record, key, value)
+            db.commit()
+            db.refresh(restaurant_record)
+            return restaurant_record
+        except Exception:
+            db.rollback()
+            raise HTTPException(
+                status_code=409,
+                detail="Have had an error while updating the record"
+            )
+    raise HTTPException(status_code=404, detail="Restaurant not found")
+
+
+@app.put("/api/restaurants/{restaurant_id}")
+def update_complete_restaurant(
+        restaurant_id: int,
+        restaurant: RestaurantSchema,
+        db: Session = Depends(get_db)):
+    """Updated one specific record of restaurant.
+
+    Args:
+      restaurant_id: id from restaurant
+      restaurant: json that contains the next params(name,
+        rating, site, email, phone, state, city, lat, lng).
+
+    Returns:
+      A updated record of restaurant in db.
+    """
+    return update_record_restaurant(restaurant_id, restaurant, db)
+
+
+@app.patch("/api/restaurants/{restaurant_id}")
+def update_partial_restaurant(
+        restaurant_id: int,
+        restaurant: RestaurantSchema,
+        db: Session = Depends(get_db)):
+    """Updated one specific record of restaurant.
+
+    Args:
+      restaurant_id: id from restaurant
+      restaurant: json that contains the next params(name,
+        rating, site, email, phone, state, city, lat, lng).
+
+    Returns:
+      A updated record of restaurant in db.
+    """
+    return update_record_restaurant(restaurant_id, restaurant, db)
