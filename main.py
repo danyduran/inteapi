@@ -30,8 +30,7 @@ def get_all_resturants(db: Session = Depends(get_db)):
     Returns:
       All saved records of restaurant in db.
     """
-    records = db.query(Restaurant).all()
-    return records
+    return db.query(Restaurant).all()
 
 
 @app.get("/api/restaurants/{restaurant_id}", status_code=status.HTTP_200_OK)
